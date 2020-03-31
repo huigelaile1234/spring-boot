@@ -10,6 +10,7 @@
 	<name>Spring Boot Build</name>
 	<description>Spring Boot Build</description>
 	<properties>
+		<disable.checks>true</disable.checks>
 		<revision>2.1.14.BUILD-SNAPSHOT</revision>
 		<main.basedir>${basedir}</main.basedir>
 	</properties>
@@ -120,6 +121,7 @@
 				</property>
 			</activation>
 			<modules>
+				<module>spring-boot-samples</module>
 				<module>spring-boot-project</module>
 				<module>spring-boot-samples</module>
 				<module>spring-boot-tests</module>
