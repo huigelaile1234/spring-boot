@@ -103,11 +103,6 @@
 							</execution>
 						</executions>
 					</plugin>
-					<plugin>
-						<groupId>com.rimerosolutions.maven.plugins</groupId>
-						<artifactId>wrapper-maven-plugin</artifactId>
-						<version>0.0.4</version>
-					</plugin>
 					</plugin>-->
 				</plugins>
 			</build>
@@ -130,7 +125,7 @@
 			<modules>
 				<module>spring-boot-samples</module>
 				<module>spring-boot-project</module>
-				<module>spring-boot-samples</module>
+				<module>spring-boot-samples-invoker</module>
 				<module>spring-boot-tests</module>
 			</modules>
 		</profile>
@@ -221,43 +216,4 @@
 			</snapshots>
 		</pluginRepository>
 	</pluginRepositories>
-	<build>
-		<pluginManagement>
-			<plugins>
-				<!-- This plugin's configuration is used to store Eclipse m2e settings
-					 only. It has no influence on the Maven build itself. -->
-				<!--<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.jetbrains.kotlin
-										</groupId>
-										<artifactId>
-											kotlin-maven-plugin
-										</artifactId>
-										<versionRange>
-											[1.1.51,)
-										</versionRange>
-										<goals>
-											<goal>compile</goal>
-											<goal>test-compile</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>-->
-			</plugins>
-		</pluginManagement>
-	</build>
 </project>

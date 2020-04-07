@@ -411,10 +411,6 @@ public class SpringApplication {
 	}
 
 
-	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
-			ApplicationArguments applicationArguments) {
-		// Create and configure the environment
-
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments) {
 
 		// 创建和配置environment，根据类型创建不同的environment对象，一般我们都是servlet环境，通过new StandardServletEnvironment()实例化
@@ -434,9 +430,6 @@ public class SpringApplication {
 		bindToSpringApplication(environment);
 
 		if (!this.isCustomEnvironment) {
-
-			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment,
-					deduceEnvironmentClass());
 
 			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment, deduceEnvironmentClass());
 
@@ -514,6 +507,7 @@ public class SpringApplication {
 
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+
 		return new SpringApplicationRunListeners(logger, getSpringFactoriesInstances(SpringApplicationRunListener.class, types, this, args));
 	}
 
@@ -643,9 +637,6 @@ public class SpringApplication {
 				PropertySource<?> source = sources.get(name);
 				CompositePropertySource composite = new CompositePropertySource(name);
 
-				composite.addPropertySource(
-						new SimpleCommandLinePropertySource("springApplicationCommandLineArgs", args));
-
 				composite.addPropertySource(new SimpleCommandLinePropertySource("springApplicationCommandLineArgs", args));
 
 				composite.addPropertySource(source);
@@ -706,12 +697,6 @@ public class SpringApplication {
 		ResourceLoader resourceLoader = (this.resourceLoader != null) ? this.resourceLoader : new DefaultResourceLoader(getClassLoader());
 
 		//SpringApplicationBannerPrinter的初始化
-		SpringApplicationBannerPrinter bannerPrinter = new SpringApplicationBannerPrinter(resourceLoader, this.banner);
-
-		//判断模式是否为log
-
-		ResourceLoader resourceLoader = (this.resourceLoader != null) ? this.resourceLoader
-				: new DefaultResourceLoader(getClassLoader());
 		SpringApplicationBannerPrinter bannerPrinter = new SpringApplicationBannerPrinter(resourceLoader, this.banner);
 
 		if (this.bannerMode == Mode.LOG) {
@@ -792,10 +777,6 @@ public class SpringApplication {
 			// 获取系统初始化器的泛型，例如我们自定义的初始化器泛型是ConfigurableApplicationContext
 			Class<?> requiredType = GenericTypeResolver.resolveTypeArgument(initializer.getClass(), ApplicationContextInitializer.class);
 
-
-			// 获取系统初始化器的泛型
-			Class<?> requiredType = GenericTypeResolver.resolveTypeArgument(initializer.getClass(),
-					ApplicationContextInitializer.class);
 
 			// 判断泛型是否是ConfigurableApplicationContext类型，如果不是就不会往下执行
 			Assert.isInstanceOf(requiredType, context, "Unable to call initializer.");
