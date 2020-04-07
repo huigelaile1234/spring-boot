@@ -261,23 +261,28 @@ public class SpringApplication {
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+		// 配置资源加载器
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
+		// 配置primarySources
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 应用环境监测
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
 
-		//SpringFactoriesLoader
+		// SpringFactoriesLoader
 		// getSpringFactoriesInstances()获取系统初始化器的配置
 		// 获取配置是通过SpringFactoriesLoader实现
 		// 然后通过反射一一进行实例化
 		// 然后通过设置的order值进行排序，order值小的在前面
 		// 最终返回这个初始化器对应的instance的集合
 
-		//通过setInitializers()将上面的集合保存
+		// 通过setInitializers()将上面的集合保存
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
 
+		// 配置应用监听器
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
 
+		// 配置main方法所在类
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -303,64 +308,84 @@ public class SpringApplication {
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+
+		// 实例化计时器
 		StopWatch stopWatch = new StopWatch();
+		// 计时器开始计时
 		stopWatch.start();
+
 		ConfigurableApplicationContext context = null;
+
+		// 创建SpringBootExceptionReporter集合
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+
+		// Headless模式赋值
 		configureHeadlessProperty();
+
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+
+		// 开启监听器
 		listeners.starting();
+
 		try {
+
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
 
+			// 配置environment
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 
 			configureIgnoreBeanInfo(environment);
 
+			// 打印banner
 			Banner printedBanner = printBanner(environment);
 
-			//创建应用上下文
+			// 创建应用上下文
 			context = createApplicationContext();
 
-			//配置失败记录器
-			exceptionReporters = getSpringFactoriesInstances(
-					SpringBootExceptionReporter.class,
-					new Class[] { ConfigurableApplicationContext.class }, context);
+			// 配置失败记录器
+			// 在spring.factories中只配置了一个org.springframework.boot.SpringBootExceptionReporter= org.springframework.boot.diagnostics.FailureAnalyzers
+			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class, new Class[] { ConfigurableApplicationContext.class }, context);
 
-			//准备上下文
+			// 准备上下文
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
 
-			//刷新上下文
+			// 刷新上下文，refresh()也在这里
 			refreshContext(context);
 
 			afterRefresh(context, applicationArguments);
 
-			//计时器停止计时
+			// 计时器停止计时
 			stopWatch.stop();
+
 			if (this.logStartupInfo) {
-				new StartupInfoLogger(this.mainApplicationClass)
-						.logStarted(getApplicationLog(), stopWatch);
+				new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
 			}
+
 			listeners.started(context);
+
+			// 启动加载器
 			callRunners(context, applicationArguments);
+
 		}
 		catch (Throwable ex) {
 			handleRunFailure(context, ex, exceptionReporters, listeners);
+
 			throw new IllegalStateException(ex);
 		}
 
 		try {
 			listeners.running(context);
+
 		}
 		catch (Throwable ex) {
+
 			handleRunFailure(context, ex, exceptionReporters, null);
 			throw new IllegalStateException(ex);
 		}
 		return context;
 	}
 
-	private ConfigurableEnvironment prepareEnvironment(
-			SpringApplicationRunListeners listeners,
+	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
 		// Create and configure the environment
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
@@ -368,8 +393,8 @@ public class SpringApplication {
 		listeners.environmentPrepared(environment);
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
-			environment = new EnvironmentConverter(getClassLoader())
-					.convertEnvironmentIfNecessary(environment, deduceEnvironmentClass());
+			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment,
+					deduceEnvironmentClass());
 		}
 		ConfigurationPropertySources.attach(environment);
 		return environment;
@@ -377,12 +402,12 @@ public class SpringApplication {
 
 	private Class<? extends StandardEnvironment> deduceEnvironmentClass() {
 		switch (this.webApplicationType) {
-			case SERVLET:
-				return StandardServletEnvironment.class;
-			case REACTIVE:
-				return StandardReactiveWebEnvironment.class;
-			default:
-				return StandardEnvironment.class;
+		case SERVLET:
+			return StandardServletEnvironment.class;
+		case REACTIVE:
+			return StandardReactiveWebEnvironment.class;
+		default:
+			return StandardEnvironment.class;
 		}
 	}
 
@@ -393,14 +418,13 @@ public class SpringApplication {
 	 * @Param [context, environment, listeners, applicationArguments, printedBanner]
 	 * @return void
 	 **/
-	private void prepareContext(ConfigurableApplicationContext context,
-								ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
-								ApplicationArguments applicationArguments, Banner printedBanner) {
+	private void prepareContext(ConfigurableApplicationContext context, ConfigurableEnvironment environment,
+			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
 
 		context.setEnvironment(environment);
 		postProcessApplicationContext(context);
 
-		//遍历调用initializers的initialize()
+		// 遍历调用initializers的initialize()
 		applyInitializers(context);
 
 		listeners.contextPrepared(context);
@@ -438,70 +462,74 @@ public class SpringApplication {
 	}
 
 	private void configureHeadlessProperty() {
-		System.setProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, System.getProperty(
-				SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, Boolean.toString(this.headless)));
+		System.setProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS,
+				System.getProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, Boolean.toString(this.headless)));
 	}
 
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
-		return new SpringApplicationRunListeners(logger, getSpringFactoriesInstances(
-				SpringApplicationRunListener.class, types, this, args));
+		return new SpringApplicationRunListeners(logger,
+				getSpringFactoriesInstances(SpringApplicationRunListener.class, types, this, args));
 	}
 
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type) {
 		return getSpringFactoriesInstances(type, new Class<?>[] {});
 	}
 
-	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
-														  Class<?>[] parameterTypes, Object... args) {
+	/**
+	* @Author liguohui
+	* @Description 获取Spring工厂instance
+	* @Date 15:16 2020/4/5
+	* @Param [type, parameterTypes, args]
+	* @return java.util.Collection<T>
+	**/
+	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
+
 		ClassLoader classLoader = getClassLoader();
 		// 使用名称并确保唯一以防止重复
-		//通过loadFactoryNames获得所有系统初始化器的实现类的全限定名
+		// 通过loadFactoryNames获得所有系统初始化器的实现类的全限定名
 
-		//loadSpringFactories()中直接读取所有jar包下META-INF/spring.factories中配置
-		//除了开发人员自定义的spring.factories，SpringBoot中自带了很多spring.factories配置
+		// loadSpringFactories()中直接读取所有jar包下META-INF/spring.factories中配置
+		// 除了开发人员自定义的spring.factories，SpringBoot中自带了很多spring.factories配置
 
-		//例如这样的配置
-//		org.springframework.context.ApplicationContextInitializer=\
-//		org.springframework.boot.context.ConfigurationWarningsApplicationContextInitializer,\
-//		org.springframework.boot.context.ContextIdApplicationContextInitializer,\
-//		org.springframework.boot.context.config.DelegatingApplicationContextInitializer,\
-//		org.springframework.boot.web.context.ServerPortInfoApplicationContextInitializer
+		// 例如这样的配置
+		// org.springframework.context.ApplicationContextInitializer=\
+		// org.springframework.boot.context.ConfigurationWarningsApplicationContextInitializer,\
+		// org.springframework.boot.context.ContextIdApplicationContextInitializer,\
+		// org.springframework.boot.context.config.DelegatingApplicationContextInitializer,\
+		// org.springframework.boot.web.context.ServerPortInfoApplicationContextInitializer
 
-		//也就是SpringBoot中还有很多系统初始化器
+		// 也就是SpringBoot中还有很多系统初始化器
 
-		//通过properties对象读取key-value配置
-		//通过一个LinkedMultiValueMap保存，然后保存到map结构的cache当中
+		// 通过properties对象读取key-value配置
+		// 通过一个LinkedMultiValueMap保存，然后保存到map结构的cache当中
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
 
-		//创建所有实现类的instance，通过反射进行实例化，保存到List中
+		// 创建所有实现类的instance，通过反射进行实例化，保存到List中
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
 
-		//对这些实例进行排序，通过order进行排序，order值越小的就在前面
+		// 对这些实例进行排序，通过order进行排序，order值越小的就在前面
 		AnnotationAwareOrderComparator.sort(instances);
 
-		//返回这个实例集合
+		// 返回这个实例集合
 		return instances;
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> List<T> createSpringFactoriesInstances(Class<T> type,
-													   Class<?>[] parameterTypes, ClassLoader classLoader, Object[] args,
-													   Set<String> names) {
-		//通过反射将这些初始化器进行实例化，然后保存到List中
+	private <T> List<T> createSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes,
+			ClassLoader classLoader, Object[] args, Set<String> names) {
+		// 通过反射将这些初始化器进行实例化，然后保存到List中
 		List<T> instances = new ArrayList<>(names.size());
 		for (String name : names) {
 			try {
 				Class<?> instanceClass = ClassUtils.forName(name, classLoader);
 				Assert.isAssignable(type, instanceClass);
-				Constructor<?> constructor = instanceClass
-						.getDeclaredConstructor(parameterTypes);
+				Constructor<?> constructor = instanceClass.getDeclaredConstructor(parameterTypes);
 				T instance = (T) BeanUtils.instantiateClass(constructor, args);
 				instances.add(instance);
 			}
 			catch (Throwable ex) {
-				throw new IllegalArgumentException(
-						"Cannot instantiate " + type + " : " + name, ex);
+				throw new IllegalArgumentException("Cannot instantiate " + type + " : " + name, ex);
 			}
 		}
 		return instances;
@@ -512,12 +540,12 @@ public class SpringApplication {
 			return this.environment;
 		}
 		switch (this.webApplicationType) {
-			case SERVLET:
-				return new StandardServletEnvironment();
-			case REACTIVE:
-				return new StandardReactiveWebEnvironment();
-			default:
-				return new StandardEnvironment();
+		case SERVLET:
+			return new StandardServletEnvironment();
+		case REACTIVE:
+			return new StandardReactiveWebEnvironment();
+		default:
+			return new StandardEnvironment();
 		}
 	}
 
@@ -532,13 +560,10 @@ public class SpringApplication {
 	 * @see #configureProfiles(ConfigurableEnvironment, String[])
 	 * @see #configurePropertySources(ConfigurableEnvironment, String[])
 	 */
-	protected void configureEnvironment(ConfigurableEnvironment environment,
-										String[] args) {
+	protected void configureEnvironment(ConfigurableEnvironment environment, String[] args) {
 		if (this.addConversionService) {
-			ConversionService conversionService = ApplicationConversionService
-					.getSharedInstance();
-			environment.setConversionService(
-					(ConfigurableConversionService) conversionService);
+			ConversionService conversionService = ApplicationConversionService.getSharedInstance();
+			environment.setConversionService((ConfigurableConversionService) conversionService);
 		}
 		configurePropertySources(environment, args);
 		configureProfiles(environment, args);
@@ -551,20 +576,18 @@ public class SpringApplication {
 	 * @param args arguments passed to the {@code run} method
 	 * @see #configureEnvironment(ConfigurableEnvironment, String[])
 	 */
-	protected void configurePropertySources(ConfigurableEnvironment environment,
-											String[] args) {
+	protected void configurePropertySources(ConfigurableEnvironment environment, String[] args) {
 		MutablePropertySources sources = environment.getPropertySources();
 		if (this.defaultProperties != null && !this.defaultProperties.isEmpty()) {
-			sources.addLast(
-					new MapPropertySource("defaultProperties", this.defaultProperties));
+			sources.addLast(new MapPropertySource("defaultProperties", this.defaultProperties));
 		}
 		if (this.addCommandLineProperties && args.length > 0) {
 			String name = CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME;
 			if (sources.contains(name)) {
 				PropertySource<?> source = sources.get(name);
 				CompositePropertySource composite = new CompositePropertySource(name);
-				composite.addPropertySource(new SimpleCommandLinePropertySource(
-						"springApplicationCommandLineArgs", args));
+				composite.addPropertySource(
+						new SimpleCommandLinePropertySource("springApplicationCommandLineArgs", args));
 				composite.addPropertySource(source);
 				sources.replace(name, composite);
 			}
@@ -592,12 +615,9 @@ public class SpringApplication {
 	}
 
 	private void configureIgnoreBeanInfo(ConfigurableEnvironment environment) {
-		if (System.getProperty(
-				CachedIntrospectionResults.IGNORE_BEANINFO_PROPERTY_NAME) == null) {
-			Boolean ignore = environment.getProperty("spring.beaninfo.ignore",
-					Boolean.class, Boolean.TRUE);
-			System.setProperty(CachedIntrospectionResults.IGNORE_BEANINFO_PROPERTY_NAME,
-					ignore.toString());
+		if (System.getProperty(CachedIntrospectionResults.IGNORE_BEANINFO_PROPERTY_NAME) == null) {
+			Boolean ignore = environment.getProperty("spring.beaninfo.ignore", Boolean.class, Boolean.TRUE);
+			System.setProperty(CachedIntrospectionResults.IGNORE_BEANINFO_PROPERTY_NAME, ignore.toString());
 		}
 	}
 
@@ -615,16 +635,24 @@ public class SpringApplication {
 	}
 
 	private Banner printBanner(ConfigurableEnvironment environment) {
+
+		//判断是否关闭banner
 		if (this.bannerMode == Banner.Mode.OFF) {
 			return null;
 		}
-		ResourceLoader resourceLoader = (this.resourceLoader != null)
-				? this.resourceLoader : new DefaultResourceLoader(getClassLoader());
-		SpringApplicationBannerPrinter bannerPrinter = new SpringApplicationBannerPrinter(
-				resourceLoader, this.banner);
+
+		//获取资源加载器
+		ResourceLoader resourceLoader = (this.resourceLoader != null) ? this.resourceLoader : new DefaultResourceLoader(getClassLoader());
+
+		//SpringApplicationBannerPrinter的初始化
+		SpringApplicationBannerPrinter bannerPrinter = new SpringApplicationBannerPrinter(resourceLoader, this.banner);
+
+		//判断模式是否为log
 		if (this.bannerMode == Mode.LOG) {
 			return bannerPrinter.print(environment, this.mainApplicationClass, logger);
 		}
+
+		//默认的控制台打印
 		return bannerPrinter.print(environment, this.mainApplicationClass, System.out);
 	}
 
@@ -640,20 +668,19 @@ public class SpringApplication {
 		if (contextClass == null) {
 			try {
 				switch (this.webApplicationType) {
-					case SERVLET:
-						contextClass = Class.forName(DEFAULT_SERVLET_WEB_CONTEXT_CLASS);
-						break;
-					case REACTIVE:
-						contextClass = Class.forName(DEFAULT_REACTIVE_WEB_CONTEXT_CLASS);
-						break;
-					default:
-						contextClass = Class.forName(DEFAULT_CONTEXT_CLASS);
+				case SERVLET:
+					contextClass = Class.forName(DEFAULT_SERVLET_WEB_CONTEXT_CLASS);
+					break;
+				case REACTIVE:
+					contextClass = Class.forName(DEFAULT_REACTIVE_WEB_CONTEXT_CLASS);
+					break;
+				default:
+					contextClass = Class.forName(DEFAULT_CONTEXT_CLASS);
 				}
 			}
 			catch (ClassNotFoundException ex) {
 				throw new IllegalStateException(
-						"Unable create a default ApplicationContext, "
-								+ "please specify an ApplicationContextClass",
+						"Unable create a default ApplicationContext, " + "please specify an ApplicationContextClass",
 						ex);
 			}
 		}
@@ -667,23 +694,19 @@ public class SpringApplication {
 	 */
 	protected void postProcessApplicationContext(ConfigurableApplicationContext context) {
 		if (this.beanNameGenerator != null) {
-			context.getBeanFactory().registerSingleton(
-					AnnotationConfigUtils.CONFIGURATION_BEAN_NAME_GENERATOR,
+			context.getBeanFactory().registerSingleton(AnnotationConfigUtils.CONFIGURATION_BEAN_NAME_GENERATOR,
 					this.beanNameGenerator);
 		}
 		if (this.resourceLoader != null) {
 			if (context instanceof GenericApplicationContext) {
-				((GenericApplicationContext) context)
-						.setResourceLoader(this.resourceLoader);
+				((GenericApplicationContext) context).setResourceLoader(this.resourceLoader);
 			}
 			if (context instanceof DefaultResourceLoader) {
-				((DefaultResourceLoader) context)
-						.setClassLoader(this.resourceLoader.getClassLoader());
+				((DefaultResourceLoader) context).setClassLoader(this.resourceLoader.getClassLoader());
 			}
 		}
 		if (this.addConversionService) {
-			context.getBeanFactory().setConversionService(
-					ApplicationConversionService.getSharedInstance());
+			context.getBeanFactory().setConversionService(ApplicationConversionService.getSharedInstance());
 		}
 	}
 
@@ -698,12 +721,14 @@ public class SpringApplication {
 
 		// getInitializers()获取所有的初始化器
 		for (ApplicationContextInitializer initializer : getInitializers()) {
-			//获取系统初始化器的泛型
+
+			// 获取系统初始化器的泛型，例如我们自定义的初始化器泛型是ConfigurableApplicationContext
 			Class<?> requiredType = GenericTypeResolver.resolveTypeArgument(initializer.getClass(), ApplicationContextInitializer.class);
-			//判断泛型是否是ConfigurableApplicationContext类型，如果不是就不会往下执行
+
+			// 判断泛型是否是ConfigurableApplicationContext类型，如果不是就不会往下执行
 			Assert.isInstanceOf(requiredType, context, "Unable to call initializer.");
 
-			//调用到各个Initializer，按照order的排序规则，例如这里我们自定义的FirstInitializer，order为1，所以是第二个调用初始化
+			// 调用到各个Initializer，按照order的排序规则，例如这里我们自定义的FirstInitializer，order为1，所以是第二个调用初始化
 			initializer.initialize(context);
 		}
 	}
@@ -715,8 +740,7 @@ public class SpringApplication {
 	 */
 	protected void logStartupInfo(boolean isRoot) {
 		if (isRoot) {
-			new StartupInfoLogger(this.mainApplicationClass)
-					.logStarting(getApplicationLog());
+			new StartupInfoLogger(this.mainApplicationClass).logStarting(getApplicationLog());
 		}
 	}
 
@@ -758,11 +782,9 @@ public class SpringApplication {
 	 */
 	protected void load(ApplicationContext context, Object[] sources) {
 		if (logger.isDebugEnabled()) {
-			logger.debug(
-					"Loading source " + StringUtils.arrayToCommaDelimitedString(sources));
+			logger.debug("Loading source " + StringUtils.arrayToCommaDelimitedString(sources));
 		}
-		BeanDefinitionLoader loader = createBeanDefinitionLoader(
-				getBeanDefinitionRegistry(context), sources);
+		BeanDefinitionLoader loader = createBeanDefinitionLoader(getBeanDefinitionRegistry(context), sources);
 		if (this.beanNameGenerator != null) {
 			loader.setBeanNameGenerator(this.beanNameGenerator);
 		}
@@ -807,8 +829,7 @@ public class SpringApplication {
 			return (BeanDefinitionRegistry) context;
 		}
 		if (context instanceof AbstractApplicationContext) {
-			return (BeanDefinitionRegistry) ((AbstractApplicationContext) context)
-					.getBeanFactory();
+			return (BeanDefinitionRegistry) ((AbstractApplicationContext) context).getBeanFactory();
 		}
 		throw new IllegalStateException("Could not locate BeanDefinitionRegistry");
 	}
@@ -819,8 +840,7 @@ public class SpringApplication {
 	 * @param sources the sources to load
 	 * @return the {@link BeanDefinitionLoader} that will be used to load beans
 	 */
-	protected BeanDefinitionLoader createBeanDefinitionLoader(
-			BeanDefinitionRegistry registry, Object[] sources) {
+	protected BeanDefinitionLoader createBeanDefinitionLoader(BeanDefinitionRegistry registry, Object[] sources) {
 		return new BeanDefinitionLoader(registry, sources);
 	}
 
@@ -838,15 +858,21 @@ public class SpringApplication {
 	 * @param context the application context
 	 * @param args the application arguments
 	 */
-	protected void afterRefresh(ConfigurableApplicationContext context,
-								ApplicationArguments args) {
+	protected void afterRefresh(ConfigurableApplicationContext context, ApplicationArguments args) {
+
 	}
 
 	private void callRunners(ApplicationContext context, ApplicationArguments args) {
+
+		// 将ApplicationRunner实现类添加到list
+		// 将CommandLineRunner实现类添加到list
 		List<Object> runners = new ArrayList<>();
 		runners.addAll(context.getBeansOfType(ApplicationRunner.class).values());
 		runners.addAll(context.getBeansOfType(CommandLineRunner.class).values());
+
+		// 根据order值按正序--排序
 		AnnotationAwareOrderComparator.sort(runners);
+
 		for (Object runner : new LinkedHashSet<>(runners)) {
 			if (runner instanceof ApplicationRunner) {
 				callRunner((ApplicationRunner) runner, args);
@@ -875,10 +901,8 @@ public class SpringApplication {
 		}
 	}
 
-	private void handleRunFailure(ConfigurableApplicationContext context,
-								  Throwable exception,
-								  Collection<SpringBootExceptionReporter> exceptionReporters,
-								  SpringApplicationRunListeners listeners) {
+	private void handleRunFailure(ConfigurableApplicationContext context, Throwable exception,
+			Collection<SpringBootExceptionReporter> exceptionReporters, SpringApplicationRunListeners listeners) {
 		try {
 			try {
 				handleExitCode(context, exception);
@@ -899,8 +923,7 @@ public class SpringApplication {
 		ReflectionUtils.rethrowRuntimeException(exception);
 	}
 
-	private void reportFailure(Collection<SpringBootExceptionReporter> exceptionReporters,
-							   Throwable failure) {
+	private void reportFailure(Collection<SpringBootExceptionReporter> exceptionReporters, Throwable failure) {
 		try {
 			for (SpringBootExceptionReporter reporter : exceptionReporters) {
 				if (reporter.reportException(failure)) {
@@ -930,8 +953,7 @@ public class SpringApplication {
 		}
 	}
 
-	private void handleExitCode(ConfigurableApplicationContext context,
-								Throwable exception) {
+	private void handleExitCode(ConfigurableApplicationContext context, Throwable exception) {
 		int exitCode = getExitCodeFromException(context, exception);
 		if (exitCode != 0) {
 			if (context != null) {
@@ -944,8 +966,7 @@ public class SpringApplication {
 		}
 	}
 
-	private int getExitCodeFromException(ConfigurableApplicationContext context,
-										 Throwable exception) {
+	private int getExitCodeFromException(ConfigurableApplicationContext context, Throwable exception) {
 		int exitCode = getExitCodeFromMappedException(context, exception);
 		if (exitCode == 0) {
 			exitCode = getExitCodeFromExitCodeGeneratorException(exception);
@@ -953,14 +974,12 @@ public class SpringApplication {
 		return exitCode;
 	}
 
-	private int getExitCodeFromMappedException(ConfigurableApplicationContext context,
-											   Throwable exception) {
+	private int getExitCodeFromMappedException(ConfigurableApplicationContext context, Throwable exception) {
 		if (context == null || !context.isActive()) {
 			return 0;
 		}
 		ExitCodeGenerators generators = new ExitCodeGenerators();
-		Collection<ExitCodeExceptionMapper> beans = context
-				.getBeansOfType(ExitCodeExceptionMapper.class).values();
+		Collection<ExitCodeExceptionMapper> beans = context.getBeansOfType(ExitCodeExceptionMapper.class).values();
 		generators.addAll(exception, beans);
 		return generators.getExitCode();
 	}
@@ -983,8 +1002,7 @@ public class SpringApplication {
 	}
 
 	private boolean isMainThread(Thread currentThread) {
-		return ("main".equals(currentThread.getName())
-				|| "restartedMain".equals(currentThread.getName()))
+		return ("main".equals(currentThread.getName()) || "restartedMain".equals(currentThread.getName()))
 				&& "main".equals(currentThread.getThreadGroup().getName());
 	}
 
@@ -1229,17 +1247,14 @@ public class SpringApplication {
 	 * applications.
 	 * @param applicationContextClass the context class to set
 	 */
-	public void setApplicationContextClass(
-			Class<? extends ConfigurableApplicationContext> applicationContextClass) {
+	public void setApplicationContextClass(Class<? extends ConfigurableApplicationContext> applicationContextClass) {
 		this.applicationContextClass = applicationContextClass;
-		this.webApplicationType = WebApplicationType
-				.deduceFromApplicationContext(applicationContextClass);
+		this.webApplicationType = WebApplicationType.deduceFromApplicationContext(applicationContextClass);
 	}
 
 	/**
 	 * Sets the {@link ApplicationContextInitializer} that will be applied to the Spring
-	 * 将系统初始化实例对应list保存下来
-	 * {@link ApplicationContext}.
+	 * 将系统初始化实例对应list保存下来 {@link ApplicationContext}.
 	 * @param initializers the initializers to set
 	 */
 	public void setInitializers(Collection<? extends ApplicationContextInitializer<?>> initializers) {
@@ -1301,8 +1316,7 @@ public class SpringApplication {
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return the running {@link ApplicationContext}
 	 */
-	public static ConfigurableApplicationContext run(Class<?> primarySource,
-													 String... args) {
+	public static ConfigurableApplicationContext run(Class<?> primarySource, String... args) {
 		return run(new Class<?>[] { primarySource }, args);
 	}
 
@@ -1313,9 +1327,11 @@ public class SpringApplication {
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return the running {@link ApplicationContext}
 	 */
-	public static ConfigurableApplicationContext run(Class<?>[] primarySources,
-													 String[] args) {
-		//系统初始化器的加载在SpringApplication中
+	public static ConfigurableApplicationContext run(Class<?>[] primarySources, String[] args) {
+		// 框架的初始化，也就是new SpringApplication(primarySources)，primarySources就是当前SpringBoot的*Application.java类
+		// run()对应的就是框架启动的过程
+
+		// 系统初始化器ApplicationContextInitializer的加载在new SpringApplication中
 		return new SpringApplication(primarySources).run(args);
 	}
 
@@ -1346,15 +1362,13 @@ public class SpringApplication {
 	 * @param exitCodeGenerators exist code generators
 	 * @return the outcome (0 if successful)
 	 */
-	public static int exit(ApplicationContext context,
-						   ExitCodeGenerator... exitCodeGenerators) {
+	public static int exit(ApplicationContext context, ExitCodeGenerator... exitCodeGenerators) {
 		Assert.notNull(context, "Context must not be null");
 		int exitCode = 0;
 		try {
 			try {
 				ExitCodeGenerators generators = new ExitCodeGenerators();
-				Collection<ExitCodeGenerator> beans = context
-						.getBeansOfType(ExitCodeGenerator.class).values();
+				Collection<ExitCodeGenerator> beans = context.getBeansOfType(ExitCodeGenerator.class).values();
 				generators.addAll(exitCodeGenerators);
 				generators.addAll(beans);
 				exitCode = generators.getExitCode();

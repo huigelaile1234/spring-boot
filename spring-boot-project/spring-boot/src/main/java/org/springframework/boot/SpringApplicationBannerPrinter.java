@@ -50,6 +50,7 @@ class SpringApplicationBannerPrinter {
 
 	private final Banner fallbackBanner;
 
+	//fallbackBanner就是用来兜底
 	SpringApplicationBannerPrinter(ResourceLoader resourceLoader, Banner fallbackBanner) {
 		this.resourceLoader = resourceLoader;
 		this.fallbackBanner = fallbackBanner;
@@ -67,21 +68,32 @@ class SpringApplicationBannerPrinter {
 	}
 
 	public Banner print(Environment environment, Class<?> sourceClass, PrintStream out) {
+		//获取banner，进行初始化
 		Banner banner = getBanner(environment);
+
+		//banner输出，默认进入SpringBootBanner.java，配置了banner.txt，就是ResourceBanner，如果是banner image就是ImageBanner
+		//先打印banner内容，然后获取version信息，改下颜色
 		banner.printBanner(environment, sourceClass, out);
+
+		//
 		return new PrintedBanner(banner, sourceClass);
 	}
 
 	private Banner getBanner(Environment environment) {
 		Banners banners = new Banners();
+		// 判断spring.banner.image.location是否设置，如果没有设置默认就是查询banner.ext，ext就是对应的后缀名
 		banners.addIfNotNull(getImageBanner(environment));
+		// 判断spring.banner.location是否设置，如果没有设置默认就是查询banner.txt
 		banners.addIfNotNull(getTextBanner(environment));
+		//判断是否为空
 		if (banners.hasAtLeastOneBanner()) {
 			return banners;
 		}
+		//判断是否设置兜底banner
 		if (this.fallbackBanner != null) {
 			return this.fallbackBanner;
 		}
+		//返回默认的banner
 		return DEFAULT_BANNER;
 	}
 
@@ -136,6 +148,7 @@ class SpringApplicationBannerPrinter {
 
 		@Override
 		public void printBanner(Environment environment, Class<?> sourceClass, PrintStream out) {
+			//文字banner进入ResourceBanner
 			for (Banner banner : this.banners) {
 				banner.printBanner(environment, sourceClass, out);
 			}
