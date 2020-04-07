@@ -326,7 +326,11 @@ public class SpringApplication {
 			// 创建应用上下文
 			context = createApplicationContext();
 
-			// 配置失败记录器
+			// 获取失败记录器实例集合
+			// 通过SpringFactoriesLoader加载META-INF/spring.factories中
+			// 系统默认只配置一种失败记录器
+			// org.springframework.boot.SpringBootExceptionReporter=org.springframework.boot.diagnostics.FailureAnalyzers
+
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
 
