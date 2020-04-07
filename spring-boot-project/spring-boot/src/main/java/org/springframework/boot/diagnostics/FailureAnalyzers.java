@@ -63,10 +63,12 @@ final class FailureAnalyzers implements SpringBootExceptionReporter {
 		Assert.notNull(context, "Context must not be null");
 		this.classLoader = (classLoader != null) ? classLoader : context.getClassLoader();
 		this.analyzers = loadFailureAnalyzers(this.classLoader);
+
 		prepareFailureAnalyzers(this.analyzers, context);
 	}
 
 	private List<FailureAnalyzer> loadFailureAnalyzers(ClassLoader classLoader) {
+
 		List<String> analyzerNames = SpringFactoriesLoader.loadFactoryNames(FailureAnalyzer.class, classLoader);
 		List<FailureAnalyzer> analyzers = new ArrayList<>();
 		for (String analyzerName : analyzerNames) {
@@ -122,11 +124,12 @@ final class FailureAnalyzers implements SpringBootExceptionReporter {
 	}
 
 	private boolean report(FailureAnalysis analysis, ClassLoader classLoader) {
-		List<FailureAnalysisReporter> reporters = SpringFactoriesLoader.loadFactories(FailureAnalysisReporter.class,
-				classLoader);
+		List<FailureAnalysisReporter> reporters = SpringFactoriesLoader.loadFactories(FailureAnalysisReporter.class, classLoader);
+
 		if (analysis == null || reporters.isEmpty()) {
 			return false;
 		}
+
 		for (FailureAnalysisReporter reporter : reporters) {
 			reporter.report(analysis);
 		}
