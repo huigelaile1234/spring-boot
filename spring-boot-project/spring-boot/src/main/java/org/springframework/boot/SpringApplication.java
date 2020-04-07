@@ -316,6 +316,7 @@ public class SpringApplication {
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
 
+			// 配置environment
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 
 			configureIgnoreBeanInfo(environment);
@@ -347,6 +348,7 @@ public class SpringApplication {
 			// 最终走到SimpleApplicationEventMulticaster广播监听的方法multicastEvent()
 			listeners.started(context);
 
+			// 启动加载器
 			callRunners(context, applicationArguments);
 		}
 		catch (Throwable ex) {
@@ -364,17 +366,28 @@ public class SpringApplication {
 		return context;
 	}
 
-	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
-			ApplicationArguments applicationArguments) {
-		// Create and configure the environment
+	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments) {
+
+		// 创建和配置environment，根据类型创建不同的environment对象，一般我们都是servlet环境，通过new StandardServletEnvironment()实例化
+		// 添加servletConfigInitParams、servletContextInitParams、jndi、systemEnvironment、systemProperties属性源
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
+
+		// 添加defaultProperties、commandLineArgs属性源
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
+
+		// 添加spring_application_json、vcap(如果是SpringCloud环境)、random、application-profile.(properties|yml)等属性源
+		// ConfigFileApplicationListener.Loader.load()添加application属性源到environment
+		// 有7个监听器对该事件感兴趣，都是判断是否添加对应的属性源
 		listeners.environmentPrepared(environment);
+
+		// 将environment中spring.main开头的配置赋值到springApplication对应的field
 		bindToSpringApplication(environment);
+
 		if (!this.isCustomEnvironment) {
-			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment,
-					deduceEnvironmentClass());
+			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment, deduceEnvironmentClass());
 		}
+
+		// 添加configurationProperties属性集
 		ConfigurationPropertySources.attach(environment);
 		return environment;
 	}
@@ -418,8 +431,7 @@ public class SpringApplication {
 			beanFactory.registerSingleton("springBootBanner", printedBanner);
 		}
 		if (beanFactory instanceof DefaultListableBeanFactory) {
-			((DefaultListableBeanFactory) beanFactory)
-					.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
+			((DefaultListableBeanFactory) beanFactory).setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
 		}
 		// Load the sources
 		Set<Object> sources = getAllSources();
@@ -510,6 +522,9 @@ public class SpringApplication {
 		if (this.environment != null) {
 			return this.environment;
 		}
+		// 进入servlet
+		// StandardServletEnvironment继承StandardEnvironment，然后是AbstractEnvironment
+		// 进入AbstractEnvironment的无参构造函数
 		switch (this.webApplicationType) {
 		case SERVLET:
 			return new StandardServletEnvironment();
@@ -532,11 +547,14 @@ public class SpringApplication {
 	 * @see #configurePropertySources(ConfigurableEnvironment, String[])
 	 */
 	protected void configureEnvironment(ConfigurableEnvironment environment, String[] args) {
+
 		if (this.addConversionService) {
 			ConversionService conversionService = ApplicationConversionService.getSharedInstance();
 			environment.setConversionService((ConfigurableConversionService) conversionService);
 		}
 		configurePropertySources(environment, args);
+
+		// 配置profile
 		configureProfiles(environment, args);
 	}
 
@@ -548,6 +566,7 @@ public class SpringApplication {
 	 * @see #configureEnvironment(ConfigurableEnvironment, String[])
 	 */
 	protected void configurePropertySources(ConfigurableEnvironment environment, String[] args) {
+
 		MutablePropertySources sources = environment.getPropertySources();
 		if (this.defaultProperties != null && !this.defaultProperties.isEmpty()) {
 			sources.addLast(new MapPropertySource("defaultProperties", this.defaultProperties));
@@ -557,8 +576,7 @@ public class SpringApplication {
 			if (sources.contains(name)) {
 				PropertySource<?> source = sources.get(name);
 				CompositePropertySource composite = new CompositePropertySource(name);
-				composite.addPropertySource(
-						new SimpleCommandLinePropertySource("springApplicationCommandLineArgs", args));
+				composite.addPropertySource(new SimpleCommandLinePropertySource("springApplicationCommandLineArgs", args));
 				composite.addPropertySource(source);
 				sources.replace(name, composite);
 			}
@@ -821,12 +839,15 @@ public class SpringApplication {
 	 * @param args the application arguments
 	 */
 	protected void afterRefresh(ConfigurableApplicationContext context, ApplicationArguments args) {
+
 	}
 
 	private void callRunners(ApplicationContext context, ApplicationArguments args) {
 		List<Object> runners = new ArrayList<>();
+		//这里是获得对应类的所有实现
 		runners.addAll(context.getBeansOfType(ApplicationRunner.class).values());
 		runners.addAll(context.getBeansOfType(CommandLineRunner.class).values());
+		// 通过order进行排序
 		AnnotationAwareOrderComparator.sort(runners);
 		for (Object runner : new LinkedHashSet<>(runners)) {
 			if (runner instanceof ApplicationRunner) {
